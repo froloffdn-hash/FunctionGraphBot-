@@ -1,0 +1,1136 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Function Graph Bot - Создание графиков функций в Telegram</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjs/lib/browser/math.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        :root {
+            --primary-color: #0088cc;
+            --primary-dark: #006699;
+            --secondary-color: #2ecc71;
+            --accent-color: #9b59b6;
+            --dark-color: #2c3e50;
+            --light-color: #f8f9fa;
+            --gray-light: #ecf0f1;
+            --gray: #95a5a6;
+            --gray-dark: #7f8c8d;
+            --border-radius: 12px;
+            --box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+            --transition: all 0.3s ease;
+        }
+        
+        body {
+            background-color: var(--light-color);
+            color: var(--dark-color);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* Header */
+        header {
+            background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+            color: white;
+            padding: 100px 0 80px;
+            text-align: center;
+            clip-path: polygon(0 0, 100% 0, 100% 85%, 0 100%);
+            margin-bottom: 60px;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        header::before {
+            content: '';
+            position: absolute;
+            width: 300px;
+            height: 300px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+            top: -150px;
+            right: -100px;
+        }
+        
+        header::after {
+            content: '';
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+            bottom: -100px;
+            left: -50px;
+        }
+        
+        header h1 {
+            font-size: 3.5rem;
+            margin-bottom: 15px;
+            position: relative;
+            z-index: 1;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+        
+        header p {
+            font-size: 1.3rem;
+            max-width: 800px;
+            margin: 0 auto 40px;
+            opacity: 0.95;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background-color: white;
+            color: var(--primary-color);
+            padding: 16px 35px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+            transition: var(--transition);
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
+            border: none;
+            cursor: pointer;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+            background-color: var(--gray-light);
+        }
+        
+        .btn-telegram {
+            background-color: var(--primary-color);
+            color: white;
+        }
+        
+        .btn-telegram:hover {
+            background-color: var(--primary-dark);
+            color: white;
+        }
+        
+        .btn-success {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background-color: #27ae60;
+            color: white;
+        }
+        
+        /* Main Content */
+        section {
+            padding: 70px 0;
+        }
+        
+        .section-title {
+            text-align: center;
+            margin-bottom: 60px;
+            font-size: 2.5rem;
+            color: var(--primary-color);
+            position: relative;
+        }
+        
+        .section-title::after {
+            content: '';
+            display: block;
+            width: 100px;
+            height: 5px;
+            background: linear-gradient(to right, var(--primary-color), var(--accent-color));
+            margin: 15px auto 0;
+            border-radius: 5px;
+        }
+        
+        /* Function Demo */
+        .demo-section {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 50px;
+            box-shadow: var(--box-shadow);
+            margin-bottom: 70px;
+        }
+        
+        .demo-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: center;
+        }
+        
+        @media (max-width: 992px) {
+            .demo-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .demo-info h3 {
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: var(--dark-color);
+        }
+        
+        .demo-info p {
+            margin-bottom: 25px;
+            font-size: 1.1rem;
+            color: var(--gray-dark);
+        }
+        
+        .demo-graph {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 25px;
+            height: 350px;
+            position: relative;
+            border: 1px solid var(--gray-light);
+        }
+        
+        .function-input-container {
+            margin-top: 30px;
+        }
+        
+        .function-input-container label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+            color: var(--dark-color);
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .input-group input {
+            flex: 1;
+            padding: 15px 20px;
+            border-radius: var(--border-radius);
+            border: 2px solid var(--gray-light);
+            font-size: 1.1rem;
+            transition: var(--transition);
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 136, 204, 0.1);
+        }
+        
+        .input-group button {
+            padding: 15px 30px;
+            border-radius: var(--border-radius);
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            transition: var(--transition);
+            white-space: nowrap;
+        }
+        
+        .input-group button:hover {
+            background-color: var(--primary-dark);
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .button-group .btn {
+            padding: 12px 20px;
+            font-size: 1rem;
+        }
+        
+        .quick-examples {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        
+        .quick-example {
+            background-color: var(--gray-light);
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: var(--transition);
+            border: 1px solid transparent;
+            color: var(--dark-color);
+        }
+        
+        .quick-example:hover {
+            background-color: #d5dbdb;
+            transform: translateY(-2px);
+        }
+        
+        /* Function Examples */
+        .examples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 30px;
+            margin-bottom: 60px;
+        }
+        
+        .example-card {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 30px;
+            box-shadow: var(--box-shadow);
+            transition: var(--transition);
+            border-top: 5px solid var(--primary-color);
+        }
+        
+        .example-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+        }
+        
+        .example-card h3 {
+            margin-bottom: 15px;
+            color: var(--primary-color);
+        }
+        
+        .example-card .function-example {
+            background-color: var(--gray-light);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: var(--dark-color);
+            border-left: 4px solid var(--accent-color);
+            cursor: pointer;
+            transition: var(--transition);
+            overflow-x: auto;
+        }
+        
+        .example-card .function-example:hover {
+            background-color: #d5dbdb;
+        }
+        
+        .example-card p {
+            color: var(--gray-dark);
+            margin-bottom: 15px;
+        }
+        
+        /* Bot Features */
+        .features-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 30px;
+        }
+        
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+            background-color: white;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+        
+        .feature-icon {
+            background-color: rgba(0, 136, 204, 0.1);
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            color: var(--primary-color);
+            flex-shrink: 0;
+        }
+        
+        .feature-content h3 {
+            margin-bottom: 10px;
+            color: var(--dark-color);
+        }
+        
+        .feature-content p {
+            color: var(--gray-dark);
+        }
+        
+        /* How to Use */
+        .steps-container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        
+        .step {
+            display: flex;
+            align-items: center;
+            margin-bottom: 40px;
+            background-color: white;
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            position: relative;
+        }
+        
+        @media (max-width: 768px) {
+            .step {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+        
+        .step-number {
+            background-color: var(--primary-color);
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8rem;
+            font-weight: bold;
+            margin-right: 25px;
+            flex-shrink: 0;
+        }
+        
+        @media (max-width: 768px) {
+            .step-number {
+                margin-right: 0;
+                margin-bottom: 20px;
+            }
+        }
+        
+        .step-content h3 {
+            margin-bottom: 10px;
+            color: var(--dark-color);
+        }
+        
+        .step-content p {
+            color: var(--gray-dark);
+            margin-bottom: 15px;
+        }
+        
+        .code-block {
+            background-color: var(--dark-color);
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            margin-top: 15px;
+            overflow-x: auto;
+            font-size: 0.95rem;
+        }
+        
+        /* Telegram QR Code */
+        .telegram-qr {
+            background-color: white;
+            border-radius: var(--border-radius);
+            padding: 40px;
+            box-shadow: var(--box-shadow);
+            text-align: center;
+            margin: 40px auto;
+            max-width: 500px;
+        }
+        
+        .qr-container {
+            margin: 20px 0;
+        }
+        
+        .qr-code {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 10px;
+            border-radius: 10px;
+            border: 1px solid var(--gray-light);
+        }
+        
+        .bot-link {
+            background-color: var(--gray-light);
+            padding: 12px 20px;
+            border-radius: var(--border-radius);
+            font-family: 'Courier New', monospace;
+            margin: 20px 0;
+            font-weight: bold;
+            color: var(--dark-color);
+            word-break: break-all;
+        }
+        
+        /* Footer */
+        footer {
+            background-color: var(--dark-color);
+            color: white;
+            padding: 60px 0 30px;
+            margin-top: 80px;
+        }
+        
+        .footer-content {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+        
+        .footer-column h3 {
+            margin-bottom: 25px;
+            font-size: 1.4rem;
+            position: relative;
+            padding-bottom: 10px;
+        }
+        
+        .footer-column h3::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 50px;
+            height: 3px;
+            background-color: var(--primary-color);
+        }
+        
+        .footer-column ul {
+            list-style: none;
+        }
+        
+        .footer-column ul li {
+            margin-bottom: 12px;
+        }
+        
+        .footer-column ul li a {
+            color: #bbb;
+            text-decoration: none;
+            transition: var(--transition);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .footer-column ul li a:hover {
+            color: white;
+            padding-left: 5px;
+        }
+        
+        .footer-column ul li a i {
+            width: 20px;
+        }
+        
+        .bot-username {
+            font-size: 1.3rem;
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+        
+        .copyright {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid #444;
+            color: #aaa;
+            font-size: 0.9rem;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            header {
+                padding: 80px 0 60px;
+            }
+            
+            header h1 {
+                font-size: 2.2rem;
+            }
+            
+            header p {
+                font-size: 1.1rem;
+            }
+            
+            .section-title {
+                font-size: 2rem;
+            }
+            
+            .demo-section {
+                padding: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header>
+        <div class="container">
+            <h1><i class="fas fa-chart-line"></i> Function Graph Bot</h1>
+            <p>Создавайте красивые графики математических функций прямо в Telegram. От простых линейных до сложных тригонометрических функций — визуализируйте математику легко!</p>
+            <div style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+                <a href="https://web.telegram.org/k/#@FunctionGraphBot_bot" class="btn btn-telegram" target="_blank">
+                    <i class="fab fa-telegram"></i> Перейти в бота
+                </a>
+                <a href="#demo" class="btn">
+                    <i class="fas fa-play-circle"></i> Попробовать демо
+                </a>
+            </div>
+        </div>
+    </header>
+    
+    <div class="container">
+        <!-- Demo Section -->
+        <section id="demo">
+            <h2 class="section-title">Интерактивная демонстрация</h2>
+            <div class="demo-section">
+                <div class="demo-container">
+                    <div class="demo-info">
+                        <h3>Создайте график функции</h3>
+                        <p>Введите математическую функцию, и мы построим её график. Затем отправьте её в Telegram бота!</p>
+                        
+                        <div class="function-input-container">
+                            <label for="function-input">Функция для построения (используйте x как переменную):</label>
+                            <div class="input-group">
+                                <input type="text" id="function-input" value="sin(x)" placeholder="Например: x^2 + 2*x + 1">
+                                <button id="plot-button">Построить</button>
+                            </div>
+                            
+                            <div class="button-group">
+                                <!-- Кнопка, которая откроет Telegram с функцией -->
+                                <a href="#" id="sendToTelegramLink" class="btn btn-success" target="_blank">
+                                    <i class="fab fa-telegram"></i> Отправить в Telegram
+                                </a>
+                                <button id="copyFunctionBtn" class="btn">
+                                    <i class="fas fa-copy"></i> Копировать
+                                </button>
+                            </div>
+                            
+                            <div class="quick-examples">
+                                <span class="quick-example" data-func="sin(x)">sin(x)</span>
+                                <span class="quick-example" data-func="x^2 + 3*x">x^2 + 3*x</span>
+                                <span class="quick-example" data-func="log(x)">log(x)</span>
+                                <span class="quick-example" data-func="exp(-x^2)">exp(-x^2)</span>
+                                <span class="quick-example" data-func="tan(x)">tan(x)</span>
+                                <span class="quick-example" data-func="sqrt(x+5)">sqrt(x+5)</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="demo-graph">
+                        <canvas id="functionChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Telegram QR Code -->
+        <div class="telegram-qr">
+            <h3>Быстрый доступ к боту</h3>
+            <p>Наведите камеру телефона на QR-код или нажмите кнопку ниже</p>
+            
+            <div class="qr-container">
+                <div id="qrCode" class="qr-code"></div>
+            </div>
+            
+            <div class="bot-link">
+                @FunctionGraphBot_bot
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <a href="https://web.telegram.org/k/#@FunctionGraphBot_bot" class="btn btn-telegram" target="_blank">
+                    <i class="fab fa-telegram"></i> Открыть в Telegram
+                </a>
+            </div>
+        </div>
+        
+        <!-- Function Examples -->
+        <section id="examples">
+            <h2 class="section-title">Примеры функций</h2>
+            <div class="examples-grid">
+                <div class="example-card">
+                    <h3>Квадратичная функция</h3>
+                    <div class="function-example" data-func="x^2 - 4*x + 3">x^2 - 4*x + 3</div>
+                    <p>Парабола — график квадратного трехчлена. Идеально для демонстрации экстремумов.</p>
+                    <a href="https://web.telegram.org/k/#@FunctionGraphBot_bot?start=x%5E2%20-%204*x%20%2B%203" class="btn btn-telegram" style="width: 100%;" target="_blank">
+                        <i class="fab fa-telegram"></i> Отправить в Telegram
+                    </a>
+                </div>
+                
+                <div class="example-card">
+                    <h3>Тригонометрическая функция</h3>
+                    <div class="function-example" data-func="sin(x) + 0.5*cos(2*x)">sin(x) + 0.5*cos(2*x)</div>
+                    <p>Периодические колебания. Показывает взаимодействие разных тригонометрических функций.</p>
+                    <a href="https://web.telegram.org/k/#@FunctionGraphBot_bot?start=sin%28x%29%20%2B%200.5*cos%282*x%29" class="btn btn-telegram" style="width: 100%;" target="_blank">
+                        <i class="fab fa-telegram"></i> Отправить в Telegram
+                    </a>
+                </div>
+                
+                <div class="example-card">
+                    <h3>Экспоненциальная функция</h3>
+                    <div class="function-example" data-func="exp(-x^2)">exp(-x^2)</div>
+                    <p>Кривая Гаусса (нормальное распределение). Показывает быстрое убывание.</p>
+                    <a href="https://web.telegram.org/k/#@FunctionGraphBot_bot?start=exp%28-x%5E2%29" class="btn btn-telegram" style="width: 100%;" target="_blank">
+                        <i class="fab fa-telegram"></i> Отправить в Telegram
+                    </a>
+                </div>
+                
+                <div class="example-card">
+                    <h3>Логарифмическая функция</h3>
+                    <div class="function-example" data-func="log(x+1)">log(x+1)</div>
+                    <p>Медленный рост. Часто используется в экономических моделях.</p>
+                    <a href="https://web.telegram.org/k/#@FunctionGraphBot_bot?start=log%28x%2B1%29" class="btn btn-telegram" style="width: 100%;" target="_blank">
+                        <i class="fab fa-telegram"></i> Отправить в Telegram
+                    </a>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Bot Features -->
+        <section id="features">
+            <h2 class="section-title">Возможности бота</h2>
+            <div class="features-list">
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <i class="fas fa-calculator"></i>
+                    </div>
+                    <div class="feature-content">
+                        <h3>Поддержка сложных функций</h3>
+                        <p>Тригонометрические (sin, cos, tan), логарифмические (log, ln), экспоненциальные (exp), степенные (x^n, sqrt) и многие другие функции.</p>
+                    </div>
+                </div>
+                
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <i class="fas fa-sliders-h"></i>
+                    </div>
+                    <div class="feature-content">
+                        <h3>Гибкие настройки</h3>
+                        <p>Задавайте диапазон по оси X, цвет графика, тип линии (сплошная, пунктирная), толщину и другие параметры.</p>
+                    </div>
+                </div>
+                
+                <div class="feature-item">
+                    <div class="feature-icon">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div class="feature-content">
+                        <h3>Множественные графики</h3>
+                        <p>Строит несколько функций на одном графике для сравнения. Используйте разделитель ";" между функциями.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <!-- How to Use -->
+        <section id="how-to-use">
+            <h2 class="section-title">Как использовать бота</h2>
+            <div class="steps-container">
+                <div class="step">
+                    <div class="step-number">1</div>
+                    <div class="step-content">
+                        <h3>Найдите бота в Telegram</h3>
+                        <p>Откройте Telegram и найдите бота <span class="bot-username">@FunctionGraphBot_bot</span> или нажмите кнопку "Перейти в бота" выше.</p>
+                        <div class="code-block">@FunctionGraphBot_bot</div>
+                        <a href="https://web.telegram.org/k/#@FunctionGraphBot_bot" class="btn btn-telegram" style="margin-top: 15px;" target="_blank">
+                            <i class="fab fa-telegram"></i> Открыть сейчас
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">2</div>
+                    <div class="step-content">
+                        <h3>Отправьте команду /start</h3>
+                        <p>Запустите бота, чтобы увидеть инструкции и доступные команды.</p>
+                        <div class="code-block">/start</div>
+                        <a href="https://web.telegram.org/k/#@FunctionGraphBot_bot?start=start" class="btn btn-telegram" style="margin-top: 15px;" target="_blank">
+                            <i class="fab fa-telegram"></i> Открыть с командой /start
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">3</div>
+                    <div class="step-content">
+                        <h3>Введите функцию для построения</h3>
+                        <p>Отправьте боту математическое выражение с переменной x. Используйте стандартные математические обозначения.</p>
+                        <div class="code-block">sin(x) * exp(-0.1*x)</div>
+                        <a href="https://web.telegram.org/k/#@FunctionGraphBot_bot?start=sin%28x%29%20*%20exp%28-0.1*x%29" class="btn btn-telegram" style="margin-top: 15px;" target="_blank">
+                            <i class="fab fa-telegram"></i> Отправить эту функцию
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="step">
+                    <div class="step-number">4</div>
+                    <div class="step-content">
+                        <h3>Настройте параметры (опционально)</h3>
+                        <p>Вы можете указать диапазон значений x, цвет и другие параметры через дополнительные команды.</p>
+                        <div class="code-block">/range -5 5<br>/color blue<br>/style dashed</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+    
+    <!-- Footer -->
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-column">
+                    <h3>Function Graph Bot</h3>
+                    <p>Мощный Telegram бот для визуализации математических функций. Создавайте графики быстро и легко.</p>
+                    <a href="https://web.telegram.org/k/#@FunctionGraphBot_bot" class="btn btn-telegram" style="margin-top: 15px;" target="_blank">
+                        <i class="fab fa-telegram"></i> Начать использовать
+                    </a>
+                </div>
+                
+                <div class="footer-column">
+                    <h3>Команды бота</h3>
+                    <ul>
+                        <li><a href="https://web.telegram.org/k/#@FunctionGraphBot_bot?start=start"><i class="fas fa-play"></i> <code>/start</code> - Запустить бота</a></li>
+                        <li><a href="https://web.telegram.org/k/#@FunctionGraphBot_bot?start=help"><i class="fas fa-question-circle"></i> <code>/help</code> - Помощь и инструкции</a></li>
+                        <li><a href="https://web.telegram.org/k/#@FunctionGraphBot_bot?start=examples"><i class="fas fa-list"></i> <code>/examples</code> - Примеры функций</a></li>
+                        <li><a href="https://web.telegram.org/k/#@FunctionGraphBot_bot?start=range"><i class="fas fa-arrows-alt-h"></i> <code>/range</code> - Установить диапазон</a></li>
+                        <li><a href="https://web.telegram.org/k/#@FunctionGraphBot_bot?start=color"><i class="fas fa-palette"></i> <code>/color</code> - Выбрать цвет</a></li>
+                    </ul>
+                </div>
+                
+                <div class="footer-column">
+                    <h3>Популярные функции</h3>
+                    <ul>
+                        <li><a href="https://web.telegram.org/k/#@FunctionGraphBot_bot?start=x%5E2%20-%203*x%20%2B%202"><i class="fas fa-chart-line"></i> <code>x^2 - 3*x + 2</code></a></li>
+                        <li><a href="https://web.telegram.org/k/#@FunctionGraphBot_bot?start=sin%28x%29%20%2B%20cos%282*x%29"><i class="fas fa-wave-square"></i> <code>sin(x) + cos(2*x)</code></a></li>
+                        <li><a href="https://web.telegram.org/k/#@FunctionGraphBot_bot?start=log%28x%2B1%29"><i class="fas fa-chart-line"></i> <code>log(x+1)</code></a></li>
+                        <li><a href="https://web.telegram.org/k/#@FunctionGraphBot_bot?start=exp%28-x%5E2%29"><i class="fas fa-chart-area"></i> <code>exp(-x^2)</code></a></li>
+                        <li><a href="https://web.telegram.org/k/#@FunctionGraphBot_bot?start=tan%28x%29%20/%20%28x%2B0.1%29"><i class="fas fa-chart-line"></i> <code>tan(x) / (x+0.1)</code></a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="copyright">
+                <p>© 2023 Function Graph Bot. Все права защищены. | Создано с <i class="fas fa-heart" style="color: #e74c3c;"></i> для любителей математики</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Конфигурация
+        const BOT_USERNAME = 'FunctionGraphBot_bot';
+        const BOT_LINK = `https://web.telegram.org/k/#@${BOT_USERNAME}`;
+        let currentFunction = 'sin(x)';
+        let functionChart = null;
+        
+        // Инициализация графика
+        const ctx = document.getElementById('functionChart').getContext('2d');
+        
+        // Функция для обновления ссылки на Telegram
+        function updateTelegramLink() {
+            const functionInput = document.getElementById('function-input');
+            const func = encodeURIComponent(functionInput.value.trim());
+            const telegramLink = document.getElementById('sendToTelegramLink');
+            
+            // Создаем ссылку на Telegram бота с параметром start
+            telegramLink.href = `${BOT_LINK}?start=${func}`;
+        }
+        
+        // Функция для открытия Telegram с функцией
+        function openTelegramWithFunction(func) {
+            const encodedFunc = encodeURIComponent(func);
+            const telegramUrl = `${BOT_LINK}?start=${encodedFunc}`;
+            window.open(telegramUrl, '_blank');
+        }
+        
+        // Функция для копирования функции
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                // Показываем уведомление
+                showNotification('Функция скопирована в буфер обмена!');
+            }).catch(err => {
+                console.error('Ошибка копирования: ', err);
+                showNotification('Не удалось скопировать функцию');
+            });
+        }
+        
+        // Функция для показа уведомления
+        function showNotification(message) {
+            // Создаем временное уведомление
+            const notification = document.createElement('div');
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background-color: var(--secondary-color);
+                color: white;
+                padding: 15px 25px;
+                border-radius: var(--border-radius);
+                box-shadow: var(--box-shadow);
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+                font-weight: 500;
+            `;
+            
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            // Удаляем уведомление через 3 секунды
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    document.body.removeChild(notification);
+                }, 300);
+            }, 3000);
+        }
+        
+        // Функция для построения графика
+        function plotFunction(funcExpression) {
+            try {
+                currentFunction = funcExpression;
+                
+                // Обновляем ссылку на Telegram
+                updateTelegramLink();
+                
+                // Создаем данные для графика
+                const data = [];
+                const labels = [];
+                const step = 0.1;
+                const start = -10;
+                const end = 10;
+                
+                // Подготавливаем функцию для math.js
+                const expr = funcExpression.toLowerCase()
+                    .replace(/sin|cos|tan|log|ln|exp|sqrt/g, match => match);
+                
+                // Создаем точки графика
+                for (let x = start; x <= end; x += step) {
+                    try {
+                        let expression = expr.replace(/x/g, `(${x})`);
+                        expression = expression.replace(/\^/g, '**');
+                        const y = math.evaluate(expression);
+                        
+                        if (isFinite(y)) {
+                            data.push(y);
+                            labels.push(x.toFixed(1));
+                        } else {
+                            data.push(null);
+                            labels.push(x.toFixed(1));
+                        }
+                    } catch (e) {
+                        data.push(null);
+                        labels.push(x.toFixed(1));
+                    }
+                }
+                
+                // Уничтожаем предыдущий график
+                if (functionChart) {
+                    functionChart.destroy();
+                }
+                
+                // Создаем новый график
+                functionChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: `f(x) = ${funcExpression}`,
+                            data: data,
+                            borderColor: '#0088cc',
+                            backgroundColor: 'rgba(0, 136, 204, 0.1)',
+                            borderWidth: 3,
+                            pointRadius: 0,
+                            fill: false,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                labels: {
+                                    font: { size: 14 }
+                                }
+                            },
+                            tooltip: {
+                                mode: 'index',
+                                intersect: false
+                            }
+                        },
+                        scales: {
+                            x: {
+                                title: {
+                                    display: true,
+                                    text: 'x',
+                                    font: { size: 16, weight: 'bold' }
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            },
+                            y: {
+                                title: {
+                                    display: true,
+                                    text: 'f(x)',
+                                    font: { size: 16, weight: 'bold' }
+                                },
+                                grid: {
+                                    color: 'rgba(0, 0, 0, 0.05)'
+                                }
+                            }
+                        }
+                    }
+                });
+                
+                return true;
+            } catch (error) {
+                console.error('Ошибка построения графика:', error);
+                showNotification('Ошибка: Не удалось построить график. Проверьте правильность функции.');
+                return false;
+            }
+        }
+        
+        // Генерация QR-кода
+        function generateQRCode() {
+            const qrElement = document.getElementById('qrCode');
+            if (qrElement && QRCode) {
+                QRCode.toCanvas(qrElement, BOT_LINK, {
+                    width: 180,
+                    height: 180,
+                    margin: 1,
+                    color: {
+                        dark: '#000000',
+                        light: '#FFFFFF'
+                    }
+                }, function(error) {
+                    if (error) console.error(error);
+                });
+            }
+        }
+        
+        // Инициализация при загрузке страницы
+        document.addEventListener('DOMContentLoaded', function() {
+            // Построить начальный график
+            plotFunction('sin(x)');
+            
+            // Генерация QR-кода
+            generateQRCode();
+            
+            // Обновить ссылку на Telegram
+            updateTelegramLink();
+            
+            // Обработчик кнопки построения
+            document.getElementById('plot-button').addEventListener('click', function() {
+                const funcInput = document.getElementById('function-input').value;
+                if (funcInput.trim()) {
+                    plotFunction(funcInput);
+                }
+            });
+            
+            // Обработчик Enter в поле ввода
+            document.getElementById('function-input').addEventListener('keyup', function(event) {
+                if (event.key === 'Enter') {
+                    document.getElementById('plot-button').click();
+                }
+                // Обновляем ссылку при каждом изменении
+                updateTelegramLink();
+            });
+            
+            // Обработчик кнопки копирования
+            document.getElementById('copyFunctionBtn').addEventListener('click', function() {
+                const funcInput = document.getElementById('function-input').value;
+                copyToClipboard(funcInput);
+            });
+            
+            // Обработчики для быстрых примеров
+            document.querySelectorAll('.quick-example').forEach(element => {
+                element.addEventListener('click', function() {
+                    const funcText = this.getAttribute('data-func');
+                    document.getElementById('function-input').value = funcText;
+                    plotFunction(funcText);
+                });
+            });
+            
+            // Обработчики для примеров функций
+            document.querySelectorAll('.function-example').forEach(element => {
+                element.addEventListener('click', function() {
+                    const funcText = this.textContent;
+                    document.getElementById('function-input').value = funcText;
+                    plotFunction(funcText);
+                });
+            });
+            
+            // Плавная прокрутка
+            document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+                anchor.addEventListener('click', function(e) {
+                    const targetId = this.getAttribute('href');
+                    if (targetId === '#') return;
+                    
+                    const targetElement = document.querySelector(targetId);
+                    if (targetElement) {
+                        e.preventDefault();
+                        window.scrollTo({
+                            top: targetElement.offsetTop - 80,
+                            behavior: 'smooth'
+                        });
+                    }
+                });
+            });
+        });
+        
+        // Глобальные функции для использования в onclick
+        window.openTelegram = function() {
+            window.open(BOT_LINK, '_blank');
+        };
+        
+        window.openTelegramWithFunction = function(func) {
+            openTelegramWithFunction(func);
+        };
+        
+        window.useExample = function(func) {
+            document.getElementById('function-input').value = func;
+            plotFunction(func);
+            openTelegramWithFunction(func);
+        };
+    </script>
+    
+    <style>
+        /* Анимации для уведомлений */
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+    </style>
+</body>
+</html>
